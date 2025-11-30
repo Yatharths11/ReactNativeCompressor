@@ -1,0 +1,241 @@
+/**
+ * MediaPreview Component
+ * Displays original and compressed media side by side
+ * Shows file sizes and compression statistics
+ */
+
+import React from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  Dimensions,
+  ScrollView,
+} from 'react-native';
+import Video from 'react-native-video';
+import {
+  colors,
+  spacing,
+  borderRadius,
+  typography,
+  shadows,
+} from '../styles/theme';
+import {MediaFile, CompressionResult} from '../types';
+import {formatFileSize} from '../utils/fileUtils';
+
+interface MediaPreviewProps {
+  originalMedia: MediaFile | null;
+  compressedResult: CompressionResult | null;
+}
+
+const {width: SCREEN_WIDTH} = Dimensions.get('window');
+const PREVIEW_WIDTH = SCREEN_WIDTH - spacing.lg * 2;
+
+const MediaPreview: React.FC<MediaPreviewProps> = ({
+  originalMedia,
+  compressedResult,
+}) => {
+  /**
+   * Renders image preview
+   */
+  const renderImage = (uri: string, label: string, fileSize?: number) => (
+    <View style={styles.mediaContainer}>
+      <View style={styles.mediaHeader}>
+        <Text style={styles.mediaLabel}>{label}</Text>
+        {fileSize !== undefined && (
+          <Text style={styles.fileSize}>{formatFileSize(fileSize)}</Text>
+        )}
+      </View>
+      <Image source={{uri}} style={styles.image} resizeMode="contain" />
+    </View>
+  );
+
+  /**
+   * Renders video preview
+   */
+  const renderVideo = (uri: string, label: string, fileSize?: number) => (
+    <View style={styles.mediaContainer}>
+      <View style={styles.mediaHeader}>
+        <Text style={styles.mediaLabel}>{label}</Text>
+        {fileSize !== undefined && (
+          <Text style={styles.fileSize}>{formatFileSize(fileSize)}</Text>
+        )}
+      </View>
+      <Video
+        source={{uri}}
+        style={styles.video}
+        resizeMode="contain"
+        controls
+        paused
+      />
+    </View>
+  );
+
+  /**
+   * Renders compression statistics
+   */
+  const renderStats = () => {
+    if (!compressedResult || !originalMedia) {
+      return null;
+    }
+
+    const {originalSize, fileSize, compressionRatio} = compressedResult;
+    const sizeReduction = originalSize - fileSize;
+
+    return (
+      <View style={styles.statsContainer}>
+        <View style={styles.statRow}>
+          <Text style={styles.statLabel}>Original Size:</Text>
+          <Text style={styles.statValue}>{formatFileSize(originalSize)}</Text>
+        </View>
+        <View style={styles.statRow}>
+          <Text style={styles.statLabel}>Compressed Size:</Text>
+          <Text style={styles.statValue}>{formatFileSize(fileSize)}</Text>
+        </View>
+        <View style={styles.statRow}>
+          <Text style={styles.statLabel}>Size Reduction:</Text>
+          <Text style={[styles.statValue, styles.successText]}>
+            {formatFileSize(sizeReduction)} ({compressionRatio}%)
+          </Text>
+        </View>
+      </View>
+    );
+  };
+
+  if (!originalMedia && !compressedResult) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>No media selected</Text>
+        <Text style={styles.emptySubtext}>
+          Select an image or video to see preview
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+      showsVerticalScrollIndicator={false}>
+      {originalMedia && (
+        <>
+          {originalMedia.type === 'image'
+            ? renderImage(originalMedia.uri, 'Original', originalMedia.fileSize)
+            : renderVideo(
+                originalMedia.uri,
+                'Original',
+                originalMedia.fileSize,
+              )}
+        </>
+      )}
+
+      {compressedResult && originalMedia && (
+        <>
+          {originalMedia.type === 'image'
+            ? renderImage(
+                compressedResult.uri,
+                'Compressed',
+                compressedResult.fileSize,
+              )
+            : renderVideo(
+                compressedResult.uri,
+                'Compressed',
+                compressedResult.fileSize,
+              )}
+        </>
+      )}
+
+      {renderStats()}
+    </ScrollView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  contentContainer: {
+    padding: spacing.md,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  emptyText: {
+    ...typography.h3,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
+  },
+  emptySubtext: {
+    ...typography.bodySmall,
+    color: colors.textLight,
+    textAlign: 'center',
+  },
+  mediaContainer: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    marginBottom: spacing.md,
+    padding: spacing.md,
+    ...shadows.sm,
+  },
+  mediaHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  mediaLabel: {
+    ...typography.h3,
+    color: colors.text,
+  },
+  fileSize: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
+  image: {
+    width: PREVIEW_WIDTH - spacing.md * 2,
+    height: 300,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.border,
+  },
+  video: {
+    width: PREVIEW_WIDTH - spacing.md * 2,
+    height: 300,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.border,
+  },
+  statsContainer: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    ...shadows.sm,
+  },
+  statRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  statLabel: {
+    ...typography.body,
+    color: colors.textSecondary,
+  },
+  statValue: {
+    ...typography.body,
+    color: colors.text,
+    fontWeight: '600',
+  },
+  successText: {
+    color: colors.success,
+  },
+});
+
+export default MediaPreview;
