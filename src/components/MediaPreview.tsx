@@ -4,7 +4,7 @@
  * Shows file sizes and compression statistics
  */
 
-import React from 'react';
+import React, {useState} from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,8 @@ import {
   Image,
   Dimensions,
   ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import Video from 'react-native-video';
 import {
@@ -23,6 +25,7 @@ import {
 } from '../styles/theme';
 import {MediaFile, CompressionResult} from '../types';
 import {formatFileSize} from '../utils/fileUtils';
+import {downloadCompressedMedia} from '../utils/downloadUtils';
 
 interface MediaPreviewProps {
   originalMedia: MediaFile | null;
@@ -36,6 +39,32 @@ const MediaPreview: React.FC<MediaPreviewProps> = ({
   originalMedia,
   compressedResult,
 }) => {
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  /**
+   * Handles download/save action for compressed media
+   */
+  const handleDownload = async () => {
+    if (!compressedResult || !originalMedia) {
+      return;
+    }
+
+    setIsDownloading(true);
+    try {
+      await downloadCompressedMedia(
+        compressedResult.uri,
+        originalMedia.type,
+        () => {
+          setIsDownloading(false);
+        },
+        () => {
+          setIsDownloading(false);
+        },
+      );
+    } catch (error) {
+      setIsDownloading(false);
+    }
+  };
   /**
    * Renders image preview
    */
@@ -148,6 +177,23 @@ const MediaPreview: React.FC<MediaPreviewProps> = ({
       )}
 
       {renderStats()}
+
+      {compressedResult && originalMedia && (
+        <TouchableOpacity
+          style={styles.downloadButton}
+          onPress={handleDownload}
+          disabled={isDownloading}
+          activeOpacity={0.8}>
+          {isDownloading ? (
+            <ActivityIndicator color={colors.textOnPrimary} />
+          ) : (
+            <>
+              <Text style={styles.downloadIcon}>💾</Text>
+              <Text style={styles.downloadText}>Download Compressed Media</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      )}
     </ScrollView>
   );
 };
@@ -235,6 +281,25 @@ const styles = StyleSheet.create({
   },
   successText: {
     color: colors.success,
+  },
+  downloadButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: spacing.md,
+    ...shadows.md,
+  },
+  downloadIcon: {
+    fontSize: 20,
+    marginRight: spacing.sm,
+  },
+  downloadText: {
+    ...typography.button,
+    color: colors.textOnPrimary,
   },
 });
 

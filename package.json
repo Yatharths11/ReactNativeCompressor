@@ -16,7 +16,8 @@
     "react-native-compressor": "^1.13.0",
     "@react-native-community/slider": "^4.5.2",
     "react-native-video": "^6.0.0",
-    "react-native-fs": "^2.20.0"
+    "react-native-fs": "^2.20.0",
+    "@react-native-camera-roll/camera-roll": "^7.7.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
